@@ -10,6 +10,7 @@ import 'package:pocketstrike/core/models/chat_models.dart';
 import 'package:pocketstrike/shared/widgets/app_icons.dart';
 import 'package:pocketstrike/features/chat/application/chat_controller.dart';
 import 'package:pocketstrike/features/chat/ui/widgets/markdown_message.dart';
+import 'package:pocketstrike/core/services/voice_assistant_service.dart';
 
 /// Modern chat bubble with executive assistant responses, top 3-dot tool inspector,
 /// interactive tool badges, and tight user sizing (Hermes / OpenClaw style).
@@ -252,6 +253,18 @@ class MessageBubble extends ConsumerWidget {
                         onTap: () {
                           Clipboard.setData(
                               ClipboardData(text: message.content));
+                        },
+                      ),
+                      _ActionIcon(
+                        icon: Icons.volume_up_rounded,
+                        tooltip: 'Speak / Listen',
+                        onTap: () {
+                          final voice = ref.read(voiceAssistantServiceProvider);
+                          if (voice.state == VoiceState.speaking) {
+                            voice.stopSpeaking();
+                          } else {
+                            voice.speak(message.content);
+                          }
                         },
                       ),
                       if (isLastAssistant && !isStreaming)

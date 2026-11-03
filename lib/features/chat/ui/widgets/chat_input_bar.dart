@@ -11,6 +11,7 @@ import 'package:pocketstrike/features/local_models/data/local_model_info.dart';
 import 'package:pocketstrike/features/local_models/data/local_model_store.dart';
 import 'package:pocketstrike/shared/widgets/app_icons.dart';
 import 'package:pocketstrike/features/chat/application/chat_controller.dart';
+import 'package:pocketstrike/core/services/voice_assistant_service.dart';
 
 /// Glass input bar: attach, text field, interactive mic dictation button, send/stop.
 class ChatInputBar extends ConsumerStatefulWidget {
@@ -62,6 +63,8 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
 
   static String _guessMime(String? ext) => switch (ext?.toLowerCase()) {
         'png' || 'jpg' || 'jpeg' || 'gif' || 'webp' => 'image/${ext ?? 'png'}',
+        'mp4' || 'mkv' || 'mov' || 'avi' || 'webm' => 'video/${ext ?? 'mp4'}',
+        'mp3' || 'wav' || 'm4a' || 'aac' || 'ogg' => 'audio/${ext ?? 'mp3'}',
         'pdf' => 'application/pdf',
         'md' => 'text/markdown',
         'dart' || 'js' || 'py' || 'java' || 'kt' || 'swift' || 'txt' =>
@@ -69,36 +72,60 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
         _ => 'application/octet-stream',
       };
 
-  void _toggleListening() {
+  Future<void> _toggleListening() async {
     HapticFeedback.mediumImpact();
-    setState(() {
-      _isListening = !_isListening;
-    });
+    final voiceService = ref.read(voiceAssistantServiceProvider);
 
     if (_isListening) {
-      _focusNode.requestFocus();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎙️ Listening... Speak your message'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      // Auto-stop listening pulse after 8 seconds if inactive
-      _listeningTimer?.cancel();
-      _listeningTimer = Timer(const Duration(seconds: 8), () {
-        if (mounted && _isListening) {
-          setState(() => _isListening = false);
-        }
-      });
+      await voiceService.stopListening();
+      setState(() => _isListening = false);
     } else {
-      _listeningTimer?.cancel();
+      final available = await voiceService.initSpeech();
+      if (!available) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Speech recognition unavailable or permission denied.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      setState(() => _isListening = true);
+      _focusNode.requestFocus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🎙️ Listening... Bolye apna message (Hindi/English)'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      await voiceService.startListening(
+        onResult: (words, isFinal) {
+          if (mounted) {
+            setState(() {
+              _textController.text = words;
+              _textController.selection = TextSelection.fromPosition(
+                TextPosition(offset: _textController.text.length),
+              );
+              if (isFinal) {
+                _isListening = false;
+              }
+            });
+          }
+        },
+      );
     }
   }
 
   void _send() {
     if (_isListening) {
+      ref.read(voiceAssistantServiceProvider).stopListening();
       setState(() => _isListening = false);
-      _listeningTimer?.cancel();
     }
     final chatState = ref.read(chatControllerProvider);
     final localStore = ref.read(localModelStoreProvider);

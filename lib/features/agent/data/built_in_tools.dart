@@ -6,6 +6,7 @@ import 'device_tools.dart';
 import 'document_tools.dart';
 import 'extra_agent_tools.dart';
 import 'storage_tools.dart';
+import 'video_voiceover_tools.dart';
 
 /// Safe built-in tools available to the agent out of the box.
 class BuiltInTools {
@@ -19,6 +20,7 @@ class BuiltInTools {
         ...DocumentAgentTools.all(),
         ...StorageAgentTools.tools(allowedRoots: allowedRoots),
         ...ExtraAgentTools.all(),
+        ...VideoVoiceoverTools.all(),
       ];
 
   static AgentTool currentTime() => AgentTool(

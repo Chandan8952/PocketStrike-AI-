@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 
@@ -147,11 +148,26 @@ class GeminiProvider implements AIProvider {
         case MessageRole.system:
           break;
         case MessageRole.user:
+          final userParts = <Map<String, dynamic>>[
+            if (m.content.isNotEmpty) {'text': m.content},
+          ];
+          for (final att in m.attachments) {
+            try {
+              final f = File(att.path);
+              if (f.existsSync()) {
+                final bytes = f.readAsBytesSync();
+                userParts.add({
+                  'inlineData': {
+                    'mimeType': att.mimeType,
+                    'data': base64Encode(bytes),
+                  }
+                });
+              }
+            } catch (_) {}
+          }
           out.add({
             'role': 'user',
-            'parts': [
-              {'text': m.content},
-            ],
+            'parts': userParts.isEmpty ? [{'text': ' '}] : userParts,
           });
         case MessageRole.assistant:
           out.add({

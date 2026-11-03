@@ -35,6 +35,8 @@ dependencies:
   llama_flutter_android: ^0.2.6
   image: ^4.9.2
   url_launcher: ^6.3.2
+  speech_to_text: ^6.6.0
+  flutter_tts: ^4.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
