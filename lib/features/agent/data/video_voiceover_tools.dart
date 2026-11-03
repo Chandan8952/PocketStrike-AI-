@@ -196,7 +196,7 @@ ${stylePrompt.isNotEmpty ? "User preference: $stylePrompt" : ""}
           },
           'required': ['video_path'],
         },
-        risk: ToolRisk.write,
+        risk: ToolRisk.safe,
         run: (args) async {
           final videoPath = args['video_path'] as String? ?? '';
           final geminiKey = args['gemini_api_key'] as String? ?? Platform.environment['GEMINI_API_KEY'] ?? '';
